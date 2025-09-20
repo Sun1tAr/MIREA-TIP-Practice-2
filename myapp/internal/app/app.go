@@ -1,12 +1,9 @@
 package app
 
 import (
-	"encoding/json"
-	"fmt"
+	"github.com/Sun1tAr/MIREA-TIP-Practice-2/myapp/internal/app/handlers"
+	"github.com/Sun1tAr/MIREA-TIP-Practice-2/myapp/utils"
 	"net/http"
-	"time"
-
-	"github.com/VLGFoxRU/myapp/utils"
 )
 
 type pingResp struct {
@@ -18,24 +15,34 @@ func Run() {
 	mux := http.NewServeMux()
 
 	// Корневой маршрут
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		utils.LogRequest(r)
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		fmt.Fprintln(w, "Hello, Go project structure!")
-	})
+	mux.HandleFunc("/", handlers.Root)
+	// /ping
+	mux.HandleFunc("/ping", handlers.Ping)
+	// badRequest
+	mux.HandleFunc("/fail", handlers.Fail)
 
-	// Пример JSON-ручки: /ping
-	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-		utils.LogRequest(r)
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		_ = json.NewEncoder(w).Encode(pingResp{
-			Status: "ok",
-			Time:   time.Now().UTC().Format(time.RFC3339),
-		})
-	})
+	handler := withRequestID(mux)
 
-	utils.LogInfo("Server is starting on :8080")
-	if err := http.ListenAndServe(":8080", mux); err != nil {
-		utils.LogError("server error: " + err.Error())
+	if handler == nil {
+		utils.LogInfo("Server is starting on :8080")
+		if err := http.ListenAndServe(":8080", handler); err != nil {
+			utils.LogError("server error: " + err.Error())
+		}
+	} else {
+		utils.LogInfo("Server is starting on :8080")
+		if err := http.ListenAndServe(":8080", mux); err != nil {
+			utils.LogError("server error: " + err.Error())
+		}
 	}
+}
+
+func withRequestID(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := r.Header.Get("X-Request-Id")
+		if id == "" {
+			id = utils.NewID16()
+		}
+		w.Header().Set("X-Request-Id", id)
+		next.ServeHTTP(w, r)
+	})
 }
