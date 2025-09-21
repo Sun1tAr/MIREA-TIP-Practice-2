@@ -1,9 +1,10 @@
 package app
 
 import (
+	"net/http"
+
 	"github.com/Sun1tAr/MIREA-TIP-Practice-2/myapp/internal/app/handlers"
 	"github.com/Sun1tAr/MIREA-TIP-Practice-2/myapp/utils"
-	"net/http"
 )
 
 type pingResp struct {
@@ -23,7 +24,7 @@ func Run() {
 
 	handler := withRequestID(mux)
 
-	if handler == nil {
+	if handler != nil {
 		utils.LogInfo("Server is starting on :8080")
 		if err := http.ListenAndServe(":8080", handler); err != nil {
 			utils.LogError("server error: " + err.Error())
